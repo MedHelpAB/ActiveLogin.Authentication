@@ -108,13 +108,13 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
         {
             var claims = new List<Claim>
                 {
-                    new Claim(GrandIdClaimTypes.Subject, loginResult.UserName),
-                    new Claim("hsaId", loginResult.UserName),
-                    new Claim("grandidsession", loginResult.SessionId),
-                    new Claim("firstname", loginResult.UserAttributes.FirstName),
-                    new Claim("lastname", loginResult.UserAttributes.LastName),
-                    new Claim("email", loginResult.UserAttributes.Email),
-                    new Claim("certificateserial", loginResult.UserAttributes.ClientCertificateSerial),
+                    new Claim(GrandIdClaimTypes.Subject, loginResult.UserName ?? loginResult.UserAttributes.PersonalIdentityNumber),
+                    new Claim(GrandIdClaimTypes.HsaId, loginResult.UserName ?? ""),
+                    new Claim(GrandIdClaimTypes.GrandIdSession, loginResult.SessionId),
+                    new Claim(GrandIdClaimTypes.GivenName, loginResult.UserAttributes.GivenName),
+                    new Claim(GrandIdClaimTypes.FamilyName, loginResult.UserAttributes.Surname),
+                    new Claim(GrandIdClaimTypes.Email, loginResult.UserAttributes.Email ?? ""),
+                    new Claim(GrandIdClaimTypes.ClientCertificateSerial, loginResult.UserAttributes.ClientCertificateSerial ?? ""),
                 };
             return claims;
         }

@@ -16,6 +16,12 @@
         public const string Gender = "gender";
         public const string Birthdate = "birthdate";
 
+        public const string HsaId = "hsaid";
+        public const string GrandIdSession = "grandid_session";
+        public const string ClientCertificateSerial = "client_serial";
+        public const string Email = "email";
+
         public static string SwedishPersonalIdentityNumber = "swedish_personal_identity_number";
+
     }
 }
