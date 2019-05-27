@@ -50,5 +50,8 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
 
         public static IGrandIdAuthenticationBuilder AddChooseDevice(this IGrandIdAuthenticationBuilder builder, string authenticationScheme, string displayName, Action<GrandIdAuthenticationOptions> configureOptions)
             => AddScheme(builder, authenticationScheme, displayName, GrandIdAuthenticationDefaults.ChooseDeviceCallpackPath, configureOptions);
+
+        public static IGrandIdAuthenticationBuilder AddSiths(this IGrandIdAuthenticationBuilder builder, string authenticationScheme, string displayName, Action<GrandIdAuthenticationOptions> configureOptions)
+            => AddScheme(builder, authenticationScheme, displayName, GrandIdAuthenticationDefaults.SithsCallpackPath, configureOptions);
     }
 }
