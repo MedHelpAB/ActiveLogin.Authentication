@@ -12,7 +12,7 @@ namespace ActiveLogin.Authentication.GrandId.Api
     {
         private readonly string _givenName;
         private readonly string _surname;
-        private readonly string _personalIdentityNumber;
+        private string _personalIdentityNumber;
         private TimeSpan _delay = TimeSpan.FromSeconds(2);
 
         private readonly Dictionary<string, ExtendedFederatedLoginResponse> _federatedLogins = new Dictionary<string, ExtendedFederatedLoginResponse>();
@@ -134,6 +134,11 @@ namespace ActiveLogin.Authentication.GrandId.Api
         private async Task SimulateResponseDelay()
         {
             await Task.Delay(Delay).ConfigureAwait(false);
+        }
+
+        void IGrandIdApiClient.SetHsaId(string hsaId)
+        {
+            _personalIdentityNumber = hsaId;
         }
 
         private class ExtendedFederatedLoginResponse
