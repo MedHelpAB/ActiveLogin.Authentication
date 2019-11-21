@@ -8,7 +8,7 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore.Models
         {
             AuthenticationProperties = authenticationProperties;
         }
-
+        public string SessionId { get; set; }
         public AuthenticationProperties AuthenticationProperties { get; }
     }
 }

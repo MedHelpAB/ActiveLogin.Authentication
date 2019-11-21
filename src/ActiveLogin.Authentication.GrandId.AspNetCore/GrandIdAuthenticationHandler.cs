@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using ActiveLogin.Authentication.GrandId.AspNetCore.Models;
 using ActiveLogin.Authentication.GrandId.AspNetCore.Serialization;
 using ActiveLogin.Identity.Swedish;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -19,6 +21,7 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
         private readonly ILogger<GrandIdAuthenticationHandler> _logger;
 
         private readonly IGrandIdApiClient _grandIdApiClient;
+        private readonly IMemoryCache _memoryCache;
 
         public GrandIdAuthenticationHandler(
             IOptionsMonitor<GrandIdAuthenticationOptions> options,
@@ -26,23 +29,25 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
             UrlEncoder encoder,
             ISystemClock clock,
             ILogger<GrandIdAuthenticationHandler> logger,
-            IGrandIdApiClient grandIdApiClient
+            IGrandIdApiClient grandIdApiClient,
+            IMemoryCache memoryCache
             )
             : base(options, loggerFactory, encoder, clock)
         {
             _logger = logger;
             _grandIdApiClient = grandIdApiClient;
+            _memoryCache = memoryCache;
         }
 
         protected override async Task<HandleRequestResult> HandleRemoteAuthenticateAsync()
         {
-            var state = GetStateFromCookie();
+            var state = GetStateFromMemoryCache();
             if (state == null)
             {
                 return HandleRequestResult.Fail("Invalid state cookie.");
             }
 
-            DeleteStateCookie();
+            DeleteFromCache(state.SessionId);
 
             var sessionId = Request.Query["grandidsession"];
             if (string.IsNullOrEmpty(sessionId))
@@ -80,7 +85,7 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
             var claims = Options.UseSiths ? GetSithsClaims(loginResult, expiresUtc) 
                 : GetClaims(loginResult, expiresUtc);
 
-            var identity = new ClaimsIdentity(claims, Scheme.Name, GrandIdClaimTypes.Name, GrandIdClaimTypes.Role);
+            var identity = new ClaimsIdentity(claims, properties.Items.First(p => p.Key == "scheme").Value, GrandIdClaimTypes.Name, GrandIdClaimTypes.Role);
             var principal = new ClaimsPrincipal(identity);
 
             return new AuthenticationTicket(principal, properties, Scheme.Name);
@@ -108,13 +113,13 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
         {
             var claims = new List<Claim>
                 {
-                    new Claim(GrandIdClaimTypes.Subject, loginResult.UserName),
-                    new Claim("hsaId", loginResult.UserName),
-                    new Claim("grandidsession", loginResult.SessionId),
-                    new Claim("firstname", loginResult.UserAttributes.FirstName),
-                    new Claim("lastname", loginResult.UserAttributes.LastName),
-                    new Claim("email", loginResult.UserAttributes.Email),
-                    new Claim("certificateserial", loginResult.UserAttributes.ClientCertificateSerial),
+                    new Claim(GrandIdClaimTypes.Subject, loginResult.UserName ?? loginResult.UserAttributes.PersonalIdentityNumber),
+                    new Claim(GrandIdClaimTypes.HsaId, loginResult.UserName ?? ""),
+                    new Claim(GrandIdClaimTypes.GrandIdSession, loginResult.SessionId),
+                    new Claim(GrandIdClaimTypes.GivenName, loginResult.UserAttributes.GivenName),
+                    new Claim(GrandIdClaimTypes.FamilyName, loginResult.UserAttributes.Surname),
+                    new Claim(GrandIdClaimTypes.Email, loginResult.UserAttributes.Email ?? ""),
+                    new Claim(GrandIdClaimTypes.ClientCertificateSerial, loginResult.UserAttributes.ClientCertificateSerial ?? ""),
                 };
             return claims;
         }
@@ -154,13 +159,12 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
 
         protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
         {
-            AppendStateCookie(properties);
-
             var absoluteReturnUrl = GetAbsoluteUrl(Options.CallbackPath);
             var swedishPersonalIdentityNumber = GetSwedishPersonalIdentityNumber(properties);
             try
             {
                 var response = await _grandIdApiClient.FederatedLoginAsync(Options.GrandIdAuthenticateServiceKey, absoluteReturnUrl, swedishPersonalIdentityNumber?.ToLongString());
+                AppendStateCookie(properties, response.SessionId);
                 _logger.GrandIdAuthSuccess(Options.GrandIdAuthenticateServiceKey, absoluteReturnUrl, response.SessionId);
                 Response.Redirect(response.RedirectUrl);
             }
@@ -190,31 +194,28 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
             return absoluteUri + returnUrl;
         }
 
-        private void AppendStateCookie(AuthenticationProperties properties)
+        private void AppendStateCookie(AuthenticationProperties properties, string sessionId)
         {
             var state = new GrandIdState(properties);
-            var cookieOptions = Options.StateCookie.Build(Context, Clock.UtcNow);
-            var cookieValue = Options.StateDataFormat.Protect(state);
-
-            Response.Cookies.Append(Options.StateCookie.Name, cookieValue, cookieOptions);
+            state.SessionId = sessionId;
+            _memoryCache.Set(sessionId, state, DateTimeOffset.Now.AddMinutes(15));
         }
 
-        private GrandIdState GetStateFromCookie()
+        private GrandIdState GetStateFromMemoryCache()
         {
-            var protectedState = Request.Cookies[Options.StateCookie.Name];
-            if (string.IsNullOrEmpty(protectedState))
+            if (Request.Query.TryGetValue("grandidsession", out var value))
             {
-                return null;
+                if (_memoryCache.TryGetValue<GrandIdState>(value.ToString(), out var result))
+                {
+                    return result;
+                }
             }
-
-            var state = Options.StateDataFormat.Unprotect(protectedState);
-            return state;
+            return null;
         }
 
-        private void DeleteStateCookie()
+        private void DeleteFromCache(string sessionId)
         {
-            var cookieOptions = Options.StateCookie.Build(Context, Clock.UtcNow);
-            Response.Cookies.Delete(Options.StateCookie.Name, cookieOptions);
+            _memoryCache.Remove(sessionId);
         }
     }
 }

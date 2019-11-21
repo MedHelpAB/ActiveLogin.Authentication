@@ -33,11 +33,31 @@ namespace ActiveLogin.Authentication.GrandId.Api.Models
         public string SerialNumber { get; set; }
 
         [DataMember(Name = "firstname")]
-        public string FirstName { get; set; }
+        private string FirstName
+        {
+            get
+            {
+                return GivenName;
+            }
+            set
+            {
+                GivenName = value;
+            }
+        }
 
         [DataMember(Name = "lastname")]
-        public string LastName { get; set; }
+        private string LastName
+        {
+            get
+            {
+                return Surname;
+            }
+            set
+            {
+                Surname = value;
+            }
 
+        }
         [DataMember(Name = "clientCertificateSerial")]
         public string ClientCertificateSerial { get; set; }
 

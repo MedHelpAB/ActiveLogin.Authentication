@@ -13,7 +13,7 @@ namespace ActiveLogin.Authentication.GrandId.Api
         private readonly string _givenName;
         private readonly string _surname;
         private readonly string _personalIdentityNumber;
-        private TimeSpan _delay = TimeSpan.FromMilliseconds(250);
+        private TimeSpan _delay = TimeSpan.FromSeconds(2);
 
         private readonly Dictionary<string, ExtendedFederatedLoginResponse> _federatedLogins = new Dictionary<string, ExtendedFederatedLoginResponse>();
         private readonly Dictionary<string, FederatedDirectLoginResponse> _federatedDirectLogins = new Dictionary<string, FederatedDirectLoginResponse>();
