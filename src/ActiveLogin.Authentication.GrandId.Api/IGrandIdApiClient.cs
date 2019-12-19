@@ -8,6 +8,7 @@ namespace ActiveLogin.Authentication.GrandId.Api
     /// </summary>
     public interface IGrandIdApiClient
     {
+        void SetHsaId(string hsaId);
         /// <summary>
         /// This is the function to log in using an apiKey, authenticateServiceKey and a callbackUrl.
         /// The return value will be a sessionid and a return URL.

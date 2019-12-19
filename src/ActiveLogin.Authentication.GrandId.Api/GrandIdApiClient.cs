@@ -128,5 +128,10 @@ namespace ActiveLogin.Authentication.GrandId.Api
             var queryString = string.Join("&", queryStringParams.Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value)}"));
             return $"{baseUrl}?{queryString}";
         }
+
+        public void SetHsaId(string hsaId)
+        {
+            throw new Exception();
+        }
     }
 }

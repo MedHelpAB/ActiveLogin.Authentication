@@ -97,11 +97,11 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
 
             var claims = new List<Claim>
                 {
-                    new Claim(GrandIdClaimTypes.Subject, personalIdentityNumber.ToLongString()),
+                    new Claim(GrandIdClaimTypes.Subject, personalIdentityNumber.To12DigitString()),
                     new Claim(GrandIdClaimTypes.Name, loginResult.UserAttributes.Name),
                     new Claim(GrandIdClaimTypes.FamilyName, loginResult.UserAttributes.Surname),
                     new Claim(GrandIdClaimTypes.GivenName, loginResult.UserAttributes.GivenName),
-                    new Claim(GrandIdClaimTypes.SwedishPersonalIdentityNumber, personalIdentityNumber.ToShortString())
+                    new Claim(GrandIdClaimTypes.SwedishPersonalIdentityNumber, personalIdentityNumber.To10DigitString())
                 };
 
             AddOptionalClaims(claims, personalIdentityNumber, expiresUtc);
@@ -163,7 +163,7 @@ namespace ActiveLogin.Authentication.GrandId.AspNetCore
             var swedishPersonalIdentityNumber = GetSwedishPersonalIdentityNumber(properties);
             try
             {
-                var response = await _grandIdApiClient.FederatedLoginAsync(Options.GrandIdAuthenticateServiceKey, absoluteReturnUrl, swedishPersonalIdentityNumber?.ToLongString());
+                var response = await _grandIdApiClient.FederatedLoginAsync(Options.GrandIdAuthenticateServiceKey, absoluteReturnUrl, swedishPersonalIdentityNumber?.To12DigitString());
                 AppendStateCookie(properties, response.SessionId);
                 _logger.GrandIdAuthSuccess(Options.GrandIdAuthenticateServiceKey, absoluteReturnUrl, response.SessionId);
                 Response.Redirect(response.RedirectUrl);
